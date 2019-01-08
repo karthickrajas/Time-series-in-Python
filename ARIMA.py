@@ -8,16 +8,15 @@ Created on Fri Jul  6 22:38:54 2018
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-from math import sqrt
 
-#read data
-dataset_train = pd.read_csv('Google_Stock_Price_Train.csv')
+'''importing the dataset'''
 
+import statsmodels.api as sm
+
+dataset_train = sm.datasets.sunspots.load_pandas().data
 #setting up the series and date as index
-
 training_set = dataset_train.iloc[:, 1:2]
-training_set.index = pd.to_datetime(dataset_train.iloc[:,0])
-
+training_set.index = pd.DatetimeIndex(start='1700', end='2009', freq='A')
 #visualising the plot
 training_set.plot()
 
@@ -40,7 +39,7 @@ acf_array = acf(training_set)
 Null hypothesis : There is a unit root in the time series sample
 Alternative Hypothesis : The series doesn't have a unit root., The series is stationary.'''
 
-results = adfuller(training_set.Open)
+results = adfuller(training_set.iloc[:,0].values)
 print("The p-value of the  adfuller is {}".format(results[1]))
 
 if results[1] <= 0.05:
@@ -68,7 +67,7 @@ results = adfuller(chg_stock.iloc[:,0])
 print("The p-value of the  adfuller is {}".format(results[1]))
 
 if results[1] <= 0.05:
-    print("Reject Null hypothesis, The series in statioary")
+    print("Reject Null hypothesis, The series in stationary")
 else:
     print("Do no Reject Null, The series is not stationary")
 
@@ -76,7 +75,7 @@ else:
 "Use pacf and information crtieria to find a good model: we can use both AIC and BIC "
 
 
-model = ARMA (training_set, order = (1,0))
+model = ARMA (training_set, order = (3,0))
 res = model.fit()
 res.plot_predict()
 
@@ -94,14 +93,22 @@ plt.xlabel('Order of AR Model')
 plt.ylabel('Baysian Information Criterion')
 plt.show()
 
+print("According to Baysian information criteria ., we can use ARMA(3,0) model")
+
+"""
+Note : The model seems to have seasonal variation ., it is better to model them using seasonal models like SARIMAX
+"""
+
 ''' Final Fitting'''
 
-
-# Forecast interest rates using an AR(1) model
-mod = ARIMA(temp_NY, order=(1,1,1))
+# Forecasting series using an AR(1) model
+from statsmodels.tsa.arima_model import ARIMA
+mod = ARIMA(training_set, order=(3,0,0))
 res = mod.fit()
 
 # Plot the original series and the forecasted series
-res.plot_predict(start='1872-01-01', end='2046-01-01')
+fig, ax = plt.subplots()
+ax = training_set.loc['1950':].plot(ax=ax)
+fig = res.plot_predict(start = '1990', end='2012', ax =ax, dynamic=True,plot_insample=True)
 plt.show()
 
